@@ -14,9 +14,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'B-Com API is running!' });
 });
 
-// Import route files (you'll create these next)
+// Import route files
 app.use('/api/products', require('./routes/products'));
-// app.use('/api/orders', require('./routes/orders'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/sellers', require('./routes/sellers'));
+app.use('/api/payments', require('./routes/payments'));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
