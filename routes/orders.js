@@ -18,6 +18,8 @@ router.post('/', async (req, res) => {
       payment_method,
       external_link,
       items,
+      terms_agreed,
+      terms_agreed_at,
     } = req.body;
 
     // Validate required fields
@@ -78,7 +80,7 @@ router.post('/', async (req, res) => {
         orderRef,
         shipping_address,
         district || 'Belize',
-        notes || external_link || ''
+        `${notes || ''} ${external_link ? '| External: ' + external_link : ''} | Terms agreed: ${terms_agreed} at ${terms_agreed_at}`
       ]
     );
 
