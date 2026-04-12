@@ -212,5 +212,23 @@ router.put('/:id/status', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ── GET /api/orders/customer — Get orders for logged in customer
+router.get('/customer', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
 
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'bcom-secret-key');
+
+    const result = await db.query(
+      `SELECT * FROM orders WHERE customer_id = $1 ORDER BY created_at DESC`,
+      [decoded.id]
+    );
+
+    res.json({ orders: result.rows });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
 module.exports = router;
