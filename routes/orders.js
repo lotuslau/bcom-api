@@ -1,6 +1,7 @@
 // ============================================================
 // B-COM BELIZE — Orders Route
 // ============================================================
+const { sendOrderConfirmation, sendAdminNotification } = require('../services/emailService');
 const express = require('express');
 const router = express.Router();
 const db = require('../db/index');
@@ -118,6 +119,16 @@ router.post('/', async (req, res) => {
         'pending'
       ]
     );
+
+// Send confirmation emails
+    const customerData = {
+      name: customer_name,
+      email: customer_email,
+      phone: customer_phone
+    };
+
+    sendOrderConfirmation(order, customerData);
+    sendAdminNotification(order, customerData);
 
     res.status(201).json({
       success: true,
