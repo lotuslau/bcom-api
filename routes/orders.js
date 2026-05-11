@@ -5,9 +5,46 @@ const { sendOrderConfirmation, sendAdminNotification } = require('../services/em
 const express = require('express');
 const router = express.Router();
 const db = require('../db/index');
+const { body, validationResult } = require('express-validator');
+
+const orderValidation = [
+  body('customer_name')
+    .trim()
+    .notEmpty().withMessage('Name is required')
+    .isLength({ max: 200 }).withMessage('Name too long')
+    .escape(),
+  body('customer_email')
+    .trim()
+    .isEmail().withMessage('Valid email is required')
+    .normalizeEmail(),
+  body('customer_phone')
+    .trim()
+    .notEmpty().withMessage('Phone is required')
+    .escape(),
+  body('shipping_address')
+    .trim()
+    .notEmpty().withMessage('Address is required')
+    .isLength({ max: 300 }).withMessage('Address too long')
+    .escape(),
+  body('payment_method')
+    .trim()
+    .notEmpty().withMessage('Payment method is required')
+    .isIn([
+      'belize_bank_card',
+      'atlantic_bank_card',
+      'belize_bank_transfer',
+      'atlantic_bank_transfer',
+      'paypal',
+      'cash_delivery'
+    ]).withMessage('Invalid payment method'),
+];
 
 // ── POST /api/orders — Create a new order
-router.post('/', async (req, res) => {
+router.post('/', orderValidation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
   try {
     const {
       customer_name,
