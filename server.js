@@ -67,13 +67,15 @@ app.use(globalLimiter);
 
 // 4 — STRICT RATE LIMIT for auth routes
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // only 10 login attempts per 15 min
+  windowMs: 15 * 60 * 1000,
+  max: 8,
   message: {
     error: 'Too many login attempts. Please try again in 15 minutes.'
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
 });
 
 // 5 — STRICT RATE LIMIT for orders

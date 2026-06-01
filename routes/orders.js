@@ -238,8 +238,12 @@ router.put('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
     const validStatuses = [
-      'pending', 'paid', 'processing', 
-      'shipped', 'delivered', 'cancelled', 'refunded'
+      'pending',
+      'confirmed',
+      'preparing',
+      'out_for_delivery',
+      'delivered',
+      'cancelled'
     ];
 
     if (!validStatuses.includes(status)) {
@@ -277,6 +281,66 @@ router.get('/customer', async (req, res) => {
     res.json({ orders: result.rows });
   } catch (err) {
     res.status(401).json({ error: 'Invalid token' });
+  }
+});
+// ── POST /api/orders/track — Track order by reference
+router.post('/track', async (req, res) => {
+  try {
+    const { reference, contact } = req.body;
+
+    if (!reference || !contact) {
+      return res.status(400).json({
+        error: 'Please provide order reference and contact details'
+      });
+    }
+
+    // Find order by reference
+    const result = await db.query(
+      `SELECT o.*, c.name as customer_name, c.email, c.phone
+       FROM orders o
+       LEFT JOIN customers c ON o.customer_id = c.id
+       WHERE o.payment_ref = $1`,
+      [reference]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Order not found. Please check your reference number.'
+      });
+    }
+
+    const order = result.rows[0];
+
+    // Security check — verify contact matches
+    const contactLower = contact.toLowerCase().trim();
+    const emailMatch = order.email?.toLowerCase() === contactLower;
+    const phoneMatch = order.phone?.replace(/\D/g, '') ===
+      contact.replace(/\D/g, '');
+
+    if (!emailMatch && !phoneMatch) {
+      return res.status(401).json({
+        error: 'Contact details do not match this order.'
+      });
+    }
+
+    // Return safe order data
+    res.json({
+      order: {
+        id: order.id,
+        payment_ref: order.payment_ref,
+        status: order.status,
+        total_bzd: order.total_bzd,
+        payment_method: order.payment_method,
+        shipping_address: order.shipping_address,
+        district: order.district,
+        created_at: order.created_at,
+        customer_name: order.customer_name
+      }
+    });
+
+  } catch (err) {
+    console.error('Track order error:', err.message);
+    res.status(500).json({ error: 'Server error. Please try again.' });
   }
 });
 module.exports = router;
