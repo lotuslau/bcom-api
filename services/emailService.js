@@ -177,7 +177,7 @@ const sendOrderConfirmation = async (order, customer) => {
             <p style="font-size:14px;color:#6b7280;margin:0 0 12px;">
               Track your order by contacting us on WhatsApp with your reference number
             </p>
-            <a href="https://wa.me/501XXXXXXXX?text=Hi!%20I%20want%20to%20track%20my%20order%20${payment_ref}" 
+            <a href="https://wa.me/5016206637?text=Hi!%20I%20want%20to%20track%20my%20order%20${payment_ref}" 
                style="display:inline-block;background:#25D366;color:white;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;">
               Track on WhatsApp →
             </a>
