@@ -35,6 +35,7 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:5175',
   'https://b-com.bz',
   'https://www.b-com.bz',
   process.env.FRONTEND_URL
@@ -49,8 +50,9 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key'],
+  credentials: true,
+  optionsSuccessStatus: 204
 }));
 
 // 3 — RATE LIMITING: Prevent brute force attacks
@@ -212,6 +214,89 @@ app.get('/api/customers', adminLimiter, adminAuth, async (req, res) => {
        FROM customers ORDER BY created_at DESC`
     );
     res.json({ customers: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Newsletter routes
+// Newsletter routes
+const db = require('./db/index');
+
+app.post('/api/newsletter/subscribe', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const existing = await db.query(
+      'SELECT id FROM newsletter WHERE email = $1', [email]
+    );
+
+    if (existing.rows.length > 0) {
+      await db.query(
+        'UPDATE newsletter SET subscribed = true WHERE email = $1', [email]
+      );
+      return res.json({ success: true, message: 'You are already subscribed!' });
+    }
+
+    await db.query(
+      'INSERT INTO newsletter (email, name) VALUES ($1, $2)',
+      [email, name || null]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Successfully subscribed to B-Com newsletter!'
+    });
+  } catch (err) {
+    console.error('Newsletter error:', err.message);
+    res.status(500).json({ error: 'Subscription failed' });
+  }
+});
+
+app.get('/api/newsletter/subscribers', adminAuth, async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT * FROM newsletter ORDER BY created_at DESC'
+    );
+    res.json({ subscribers: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/newsletter/unsubscribe/:id', adminAuth, async (req, res) => {
+  try {
+    await db.query(
+      'UPDATE newsletter SET subscribed = false WHERE id = $1',
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/newsletter/subscribers', adminAuth, async (req, res) => {
+  try {
+    const db = require('./db/index');
+    const result = await db.query(
+      'SELECT * FROM newsletter ORDER BY created_at DESC'
+    );
+    res.json({ subscribers: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/newsletter/unsubscribe/:id', adminAuth, async (req, res) => {
+  try {
+    const db = require('./db/index');
+    await db.query(
+      'UPDATE newsletter SET subscribed = false WHERE id = $1',
+      [req.params.id]
+    );
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

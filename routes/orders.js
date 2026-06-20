@@ -314,8 +314,8 @@ router.post('/track', async (req, res) => {
     // Security check — verify contact matches
     const contactLower = contact.toLowerCase().trim();
     const emailMatch = order.email?.toLowerCase() === contactLower;
-    const phoneMatch = order.phone?.replace(/\D/g, '') ===
-      contact.replace(/\D/g, '');
+    const normalizePhone = (p) => p.replace(/\D/g, '').replace(/^501/, '');
+    const phoneMatch = normalizePhone(order.phone || '') === normalizePhone(contact);
 
     if (!emailMatch && !phoneMatch) {
       return res.status(401).json({

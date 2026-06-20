@@ -47,7 +47,7 @@ router.post('/initiate', async (req, res) => {
           status: 'pending_merchant_setup',
           message: 'Belize Bank gateway is being configured.',
           instructions: 'Our team will contact you to complete payment.',
-          contact: 'hello@b-com.bz'
+          contact: 'bcom@gmail.com'
         });
       }
 
@@ -78,7 +78,7 @@ router.post('/initiate', async (req, res) => {
           status: 'pending_merchant_setup',
           message: 'Atlantic Bank gateway is being configured.',
           instructions: 'Our team will contact you to complete payment.',
-          contact: 'hello@b-com.bz'
+          contact: 'bcom@gmail.com'
         });
       }
 
