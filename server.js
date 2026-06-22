@@ -1,6 +1,8 @@
 // ============================================================
 // B-COM BELIZE — Secure Server
 // ============================================================
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -139,7 +141,7 @@ app.use('/api/orders', orderLimiter, require('./routes/orders'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/sellers', require('./routes/sellers'));
+/*app.use('/api/sellers', require('./routes/sellers'));*/
 
 // ============================================================
 // ADMIN ROUTES — Extra protection
