@@ -7,7 +7,8 @@ const db = require('../db/index');
 
 const VALID_PAYMENT_METHODS = [
   'belize_bank_card',
-  'atlantic_bank_card'
+  'atlantic_bank_card',
+  "international_credit_card"
 ];
 
 // ── POST /api/payments/initiate
