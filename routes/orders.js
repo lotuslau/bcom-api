@@ -60,6 +60,19 @@ router.post('/', orderValidation, async (req, res) => {
       terms_agreed_at,
     } = req.body;
 
+    //Check if customer is logged in
+    let loggedInCustomerId = null;
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token) {
+      try {
+      const jwt = require('jsonwebtoken');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      loggedInCustomerId = decoded.id;
+      } catch (err) {
+        //Token invalid, continue as guest 
+      }
+    }
+
     // Validate required fields
     if (!customer_name || !customer_email || !customer_phone || !shipping_address) {
       return res.status(400).json({
@@ -82,8 +95,15 @@ router.post('/', orderValidation, async (req, res) => {
     // Generate order reference
     const orderRef = 'BCM-' + String(Date.now()).slice(-5);
 
-    // Save or find customer
+    // Use logged in customer ID if available, otherwise find/create by email
     let customer;
+    if (loggedInCustomerId) {
+      const existingCustomer = await db.query(
+        'SELECT * FROM customers WHERE id = $1',
+        [loggedInCustomerId]
+      );
+      customer = existingCustomer.rows[0];
+    } else {
     const existingCustomer = await db.query(
       'SELECT * FROM customers WHERE email = $1',
       [customer_email]
@@ -99,6 +119,7 @@ router.post('/', orderValidation, async (req, res) => {
       );
       customer = newCustomer.rows[0];
     }
+  }
 
     // Create the order
     const orderResult = await db.query(

@@ -137,6 +137,7 @@ app.use('/api/orders', orderLimiter, require('./routes/orders'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/sellers', require('./routes/sellers'));
 
 // ============================================================
