@@ -1,6 +1,7 @@
 // ============================================================
 // B-COM BELIZE — Auth Route (Secured)
 // ============================================================
+/* global process */
 const express = require('express');
 const router = express.Router();
 const db = require('../db/index');
@@ -66,6 +67,7 @@ router.post('/register', [
     .escape(),
 ], async (req, res) => {
   try {
+      console.log('Register body:', req.body);
     // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -101,6 +103,9 @@ router.post('/register', [
     );
 
     const customer = result.rows[0];
+    
+    console.log('Customer created:', customer);
+    console.log('JWT_SECRET exists:', !!JWT_SECRET);
 
     const token = jwt.sign(
       { id: customer.id, email: customer.email },
@@ -116,7 +121,7 @@ router.post('/register', [
     });
 
   } catch (err) {
-    console.error('Register error:', err.message);
+    console.error('Register error:', err);
     res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
 });
@@ -198,11 +203,12 @@ router.post('/login', [
         phone: customer.phone,
         address: customer.address,
         district: customer.district
+
       }
     });
 
   } catch (err) {
-    console.error('Login error:', err.message);
+    console.error('Login error:', err);
     res.status(500).json({ error: 'Login failed. Please try again.' });
   }
 });
@@ -231,7 +237,46 @@ router.get('/me', async (req, res) => {
     res.json({ customer: result.rows[0] });
 
   } catch (err) {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      res.status(401).json({ error: 'Invalid or expired token' });
+    } else {
+      console.error('Get me error:', err);
+      res.status(500).json({ error: 'Failed to fetch customer data' });
+    }
+  }
+});
+// ── PUT /api/auth/update — Update customer profile
+router.put('/update', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { name, phone, address, district } = req.body;
+
+    const result = await db.query(
+      `UPDATE customers SET
+        name = COALESCE($1, name),
+        phone = COALESCE($2, phone),
+        address = COALESCE($3, address),
+        district = COALESCE($4, district)
+       WHERE id = $5
+       RETURNING id, name, email, phone, address, district`,
+      [name, phone, address, district, decoded.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    res.json({
+      success: true,
+      customer: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error('Profile update error:', err.message);
+    res.status(401).json({ error: 'Invalid token or update failed' });
   }
 });
 

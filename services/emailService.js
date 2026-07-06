@@ -202,10 +202,10 @@ const sendOrderConfirmation = async (order, customer) => {
             B-COM BELIZE
           </p>
           <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:0 0 12px;">
-            Belize City, Belize · hello@b-com.bz · +501-XXX-XXXX
+            Belize City, Belize · bcom@gmail.com · +501-6206637
           </p>
           <p style="color:rgba(255,255,255,0.3);font-size:11px;margin:0;">
-            © 2025 B-Com Belize Ltd. All rights reserved.
+            © 2026 B-Com Belize Ltd. All rights reserved.
             <br>
             🔒 PCI DSS Compliant · 🇧🇿 Proudly Belizean
           </p>
@@ -232,7 +232,7 @@ const sendOrderConfirmation = async (order, customer) => {
       Payment: ${paymentLabel}
       Delivery to: ${shipping_address}, ${district}
       
-      Track your order via WhatsApp: +501-XXX-XXXX
+      Track your order via WhatsApp: +501-6206637
       
       Thank you for shopping with B-Com Belize!
     `

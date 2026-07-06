@@ -32,10 +32,7 @@ const orderValidation = [
     .isIn([
       'belize_bank_card',
       'atlantic_bank_card',
-      'belize_bank_transfer',
-      'atlantic_bank_transfer',
-      'paypal',
-      'cash_delivery'
+      'international_card',
     ]).withMessage('Invalid payment method'),
 ];
 
@@ -60,16 +57,16 @@ router.post('/', orderValidation, async (req, res) => {
       terms_agreed_at,
     } = req.body;
 
-    //Check if customer is logged in
+    // Check if customer is logged in
     let loggedInCustomerId = null;
     const token = req.headers.authorization?.split(' ')[1];
     if (token) {
       try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      loggedInCustomerId = decoded.id;
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        loggedInCustomerId = decoded.id;
       } catch (err) {
-        //Token invalid, continue as guest 
+        // Token invalid, continue as guest
       }
     }
 
@@ -95,7 +92,7 @@ router.post('/', orderValidation, async (req, res) => {
     // Generate order reference
     const orderRef = 'BCM-' + String(Date.now()).slice(-5);
 
-    // Use logged in customer ID if available, otherwise find/create by email
+    // Use logged-in customer ID if available, otherwise find/create by email
     let customer;
     if (loggedInCustomerId) {
       const existingCustomer = await db.query(
@@ -104,22 +101,22 @@ router.post('/', orderValidation, async (req, res) => {
       );
       customer = existingCustomer.rows[0];
     } else {
-    const existingCustomer = await db.query(
-      'SELECT * FROM customers WHERE email = $1',
-      [customer_email]
-    );
-
-    if (existingCustomer.rows.length > 0) {
-      customer = existingCustomer.rows[0];
-    } else {
-      const newCustomer = await db.query(
-        `INSERT INTO customers (name, email, phone, address, district)
-         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [customer_name, customer_email, customer_phone, shipping_address, district]
+      const existingCustomer = await db.query(
+        'SELECT * FROM customers WHERE email = $1',
+        [customer_email]
       );
-      customer = newCustomer.rows[0];
+
+      if (existingCustomer.rows.length > 0) {
+        customer = existingCustomer.rows[0];
+      } else {
+        const newCustomer = await db.query(
+          `INSERT INTO customers (name, email, phone, address, district)
+           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+          [customer_name, customer_email, customer_phone, shipping_address, district]
+        );
+        customer = newCustomer.rows[0];
+      }
     }
-  }
 
     // Create the order
     const orderResult = await db.query(
@@ -220,37 +217,23 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// ── GET /api/orders/:ref — Get order by reference
-router.get('/:ref', async (req, res) => {
+// ── GET /api/orders/customer — Get orders for logged in customer
+router.get('/customer', async (req, res) => {
   try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'bcom-secret-key');
+
     const result = await db.query(
-      `SELECT o.*, c.name as customer_name, c.email, c.phone
-       FROM orders o
-       LEFT JOIN customers c ON o.customer_id = c.id
-       WHERE o.payment_ref = $1`,
-      [req.params.ref]
+      `SELECT * FROM orders WHERE customer_id = $1 ORDER BY created_at DESC`,
+      [decoded.id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-
-    // Get order items
-    const items = await db.query(
-      `SELECT oi.*, p.name as product_name, p.images
-       FROM order_items oi
-       LEFT JOIN products p ON oi.product_id = p.id
-       WHERE oi.order_id = $1`,
-      [result.rows[0].id]
-    );
-
-    res.json({
-      order: result.rows[0],
-      items: items.rows
-    });
+    res.json({ orders: result.rows });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(401).json({ error: 'Invalid token' });
   }
 });
 
@@ -285,25 +268,40 @@ router.put('/:id/status', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// ── GET /api/orders/customer — Get orders for logged in customer
-router.get('/customer', async (req, res) => {
+
+// ── GET /api/orders/:ref — Get order by reference
+router.get('/:ref', async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'No token provided' });
-
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'bcom-secret-key');
-
     const result = await db.query(
-      `SELECT * FROM orders WHERE customer_id = $1 ORDER BY created_at DESC`,
-      [decoded.id]
+      `SELECT o.*, c.name as customer_name, c.email, c.phone
+       FROM orders o
+       LEFT JOIN customers c ON o.customer_id = c.id
+       WHERE o.payment_ref = $1`,
+      [req.params.ref]
     );
 
-    res.json({ orders: result.rows });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Get order items
+    const items = await db.query(
+      `SELECT oi.*, p.name as product_name, p.images
+       FROM order_items oi
+       LEFT JOIN products p ON oi.product_id = p.id
+       WHERE oi.order_id = $1`,
+      [result.rows[0].id]
+    );
+
+    res.json({
+      order: result.rows[0],
+      items: items.rows
+    });
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(500).json({ error: err.message });
   }
 });
+
 // ── POST /api/orders/track — Track order by reference
 router.post('/track', async (req, res) => {
   try {
@@ -335,8 +333,8 @@ router.post('/track', async (req, res) => {
     // Security check — verify contact matches
     const contactLower = contact.toLowerCase().trim();
     const emailMatch = order.email?.toLowerCase() === contactLower;
-    const phoneMatch = order.phone?.replace(/\D/g, '') ===
-      contact.replace(/\D/g, '');
+    const normalizePhone = (p) => p.replace(/\D/g, '').replace(/^501/, '');
+    const phoneMatch = normalizePhone(order.phone || '') === normalizePhone(contact);
 
     if (!emailMatch && !phoneMatch) {
       return res.status(401).json({

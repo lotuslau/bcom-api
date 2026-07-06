@@ -1,7 +1,7 @@
 // ============================================================
-// B-COM BELIZE — Sellers Route
+// B-COM BELIZE — Sellers Route - NOT IN USE AT THE MOMENT
 // ============================================================
-const express = require('express');
+/*const express = require('express');
 const router = express.Router();
 const db = require('../db/index');
 
@@ -137,4 +137,4 @@ router.put('/:id/status', async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router;*/
