@@ -2,6 +2,33 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/index');
 
+const normalizeImageValue = (value) => {
+  if (!value) return null;
+  if (Array.isArray(value)) {
+    return value.map(normalizeImageValue).filter(Boolean);
+  }
+
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('images/')) {
+    return `/${trimmed}`;
+  }
+
+  return `/images/${trimmed}`;
+};
+
+const normalizeProduct = (product) => ({
+  ...product,
+  images: normalizeImageValue(product.images),
+});
+
 // GET all products: http://localhost:3001/api/products
 router.get('/', async (req, res) => {
   try {
@@ -15,7 +42,7 @@ router.get('/', async (req, res) => {
     }
 
     const result = await db.query(query, params);
-    res.json({ products: result.rows });
+    res.json({ products: result.rows.map(normalizeProduct) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -30,7 +57,7 @@ router.get('/:id', async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    res.json(result.rows[0]);
+    res.json(normalizeProduct(result.rows[0]));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -109,10 +136,10 @@ router.post('/', async (req, res) => {
       [name, description, price_bzd, stock_qty || 0,
        brand, category_id || 1, external_store || 'own',
        is_active !== false, featured || false,
-       sizes || '[]', colors || '[]', images || null]
+       sizes || '[]', colors || '[]', normalizeImageValue(images) || null]
     );
 
-    res.status(201).json({ success: true, product: result.rows[0] });
+    res.status(201).json({ success: true, product: normalizeProduct(result.rows[0]) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
