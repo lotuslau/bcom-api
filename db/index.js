@@ -2,13 +2,14 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const useDatabaseUrl = Boolean(process.env.DATABASE_URL);
-const sslEnabled = process.env.DB_SSL === 'true' || /supabase|neon|render/.test(process.env.DB_HOST || '');
+const sslEnabled = process.env.DB_SSL === 'true' || Boolean(process.env.DATABASE_URL) || /supabase|neon|render/i.test(process.env.DB_HOST || '');
+const sslConfig = sslEnabled ? { rejectUnauthorized: false } : false;
 
 const pool = new Pool(
   useDatabaseUrl
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+        ssl: sslConfig,
       }
     : {
         host: process.env.DB_HOST,
@@ -16,7 +17,7 @@ const pool = new Pool(
         database: process.env.DB_NAME,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
-        ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+        ssl: sslConfig,
       }
 );
 
