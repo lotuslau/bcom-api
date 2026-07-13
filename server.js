@@ -37,13 +37,19 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://bcombelize.vercel.app/',
-  process.env.FRONTEND_URL
+  'https://bcombelize.vercel.app',
+  process.env.FRONTEND_URL,
+  process.env.VITE_API_URL,
 ].filter(Boolean);
+
+const normalizeOrigin = (value) => value ? value.replace(/\/+$/, '') : value;
+const normalizedAllowedOrigins = allowedOrigins.map(normalizeOrigin);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (!origin || normalizedAllowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
